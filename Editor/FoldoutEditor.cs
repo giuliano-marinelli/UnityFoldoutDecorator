@@ -395,19 +395,21 @@ static class EditorTypes
     public static int Get(Object target, out List<FieldInfo> objectFields)
     {
         var t = target.GetType();
-        var hash = t.GetHashCode();
 
-        if (!fields.TryGetValue(hash, out objectFields))
-        {
-            var typeTree = t.GetTypeTree();
-            objectFields = target.GetType()
-                    .GetFields(BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.NonPublic)
-                    .OrderByDescending(x => typeTree.IndexOf(x.DeclaringType))
-                    .ToList();
-            fields.Add(hash, objectFields);
-        }
+        var bindingFlags = BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic;
+        objectFields = GetMembersInclPrivateBase(t, bindingFlags).ToList();
 
         return objectFields.Count;
+    }
+
+    public static FieldInfo[] GetMembersInclPrivateBase(Type t, BindingFlags flags)
+    {
+        var memberList = new List<FieldInfo>();
+        memberList.AddRange(t.GetFields(flags));
+        Type currentType = t;
+        while ((currentType = currentType.BaseType) != null)
+            memberList.AddRange(currentType.GetFields(flags));
+        return memberList.ToArray();
     }
 }
 
